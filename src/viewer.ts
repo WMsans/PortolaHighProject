@@ -3,6 +3,7 @@ import {
   Box3,
   DirectionalLight,
   Group,
+  Material,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
@@ -19,6 +20,8 @@ import type { LoadedScene } from "./types";
 
 export type FloorView = 1 | 2 | "both";
 
+const ROUTE_RENDER_ORDER = 999;
+
 export class Viewer {
   readonly scene = new Scene();
   readonly camera: PerspectiveCamera;
@@ -30,6 +33,10 @@ export class Viewer {
   private defaultCameraPos = new Vector3(0, -200, 200);
   private defaultTarget = new Vector3(0, 0, 0);
   private modelBounds: Box3 | null = null;
+  private animFrameId = 0;
+  private resizeRafId = 0;
+  private disposed = false;
+  private readonly onResizeHandler = (): void => this.onResize();
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
@@ -66,13 +73,14 @@ export class Viewer {
     });
     this.routeMaterial.resolution.set(window.innerWidth, window.innerHeight);
 
-    window.addEventListener("resize", () => this.onResize());
+    window.addEventListener("resize", this.onResizeHandler);
     this.animate();
   }
 
   attachModel(loaded: LoadedScene): void {
     this.scene.add(loaded.modelRoot);
     this.modelBounds = new Box3().setFromObject(loaded.modelRoot);
+    if (this.modelBounds.isEmpty()) return;
     const center = new Vector3();
     this.modelBounds.getCenter(center);
     const size = new Vector3();
@@ -84,15 +92,14 @@ export class Viewer {
   }
 
   enableDebug(loaded: LoadedScene): void {
-    this.debugLayer.clear();
-    const sphereGeo = new SphereGeometry(0.6, 8, 8);
+    this.disposeDebugLayer();
     const matWp = new MeshBasicMaterial({ color: 0x2ecc71 });
     const matRoom = new MeshBasicMaterial({ color: 0x3498db });
     const matPark = new MeshBasicMaterial({ color: 0xe67e22 });
     const matStair = new MeshBasicMaterial({ color: 0x9b59b6 });
 
-    const place = (pos: Vector3, mat: MeshBasicMaterial) => {
-      const m = new Mesh(sphereGeo, mat);
+    const place = (pos: Vector3, templateMat: MeshBasicMaterial) => {
+      const m = new Mesh(new SphereGeometry(0.6, 8, 8), templateMat.clone());
       m.position.copy(pos);
       this.debugLayer.add(m);
     };
@@ -103,6 +110,10 @@ export class Viewer {
       place(s.endpoints[0].position, matStair);
       place(s.endpoints[1].position, matStair);
     }
+    matWp.dispose();
+    matRoom.dispose();
+    matPark.dispose();
+    matStair.dispose();
   }
 
   drawRoute(points: Vector3[]): void {
@@ -114,12 +125,17 @@ export class Viewer {
     geo.setPositions(flat);
     const line = new Line2(geo, this.routeMaterial);
     line.computeLineDistances();
-    line.renderOrder = 999;
+    line.renderOrder = ROUTE_RENDER_ORDER;
     this.routeLayer.add(line);
     this.frameBounds(new Box3().setFromPoints(points));
   }
 
   clearRoute(): void {
+    this.routeLayer.children.forEach((child) => {
+      if (child instanceof Line2) {
+        child.geometry.dispose();
+      }
+    });
     this.routeLayer.clear();
   }
 
@@ -132,6 +148,29 @@ export class Viewer {
     this.camera.position.copy(this.defaultCameraPos);
     this.controls.target.copy(this.defaultTarget);
     this.controls.update();
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    cancelAnimationFrame(this.animFrameId);
+    cancelAnimationFrame(this.resizeRafId);
+    window.removeEventListener("resize", this.onResizeHandler);
+    this.disposeDebugLayer();
+    this.clearRoute();
+    this.routeMaterial.dispose();
+    this.controls.dispose();
+    this.renderer.dispose();
+  }
+
+  private disposeDebugLayer(): void {
+    this.debugLayer.children.forEach((child) => {
+      if (child instanceof Mesh) {
+        child.geometry.dispose();
+        (child.material as Material).dispose();
+      }
+    });
+    this.debugLayer.clear();
   }
 
   private frameBounds(box: Box3): void {
@@ -147,16 +186,22 @@ export class Viewer {
   }
 
   private onResize(): void {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h, false);
-    this.routeMaterial.resolution.set(w, h);
+    if (this.resizeRafId) return;
+    this.resizeRafId = requestAnimationFrame(() => {
+      this.resizeRafId = 0;
+      if (this.disposed) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      this.camera.aspect = w / h;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(w, h, false);
+      this.routeMaterial.resolution.set(w, h);
+    });
   }
 
   private animate = (): void => {
-    requestAnimationFrame(this.animate);
+    if (this.disposed) return;
+    this.animFrameId = requestAnimationFrame(this.animate);
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
   };
