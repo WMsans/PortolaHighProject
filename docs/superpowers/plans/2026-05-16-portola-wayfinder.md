@@ -183,8 +183,8 @@ console.log("Portola Wayfinder boot");
 - [ ] **Step 8: Install dependencies and verify build**
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
 Expected: build succeeds, produces `dist/`.
@@ -243,7 +243,7 @@ export const FLOOR_Z_OFFSET = 4; // metres; lifts floor-2 nodes
 - [ ] **Step 2: Verify it compiles**
 
 ```bash
-npx tsc --noEmit
+pnpm exec tsc --noEmit
 ```
 
 Expected: no errors.
@@ -306,7 +306,7 @@ describe("findPath", () => {
 - [ ] **Step 2: Run test, confirm failure**
 
 ```bash
-npm test
+pnpm test
 ```
 
 Expected: FAIL — `buildGraph` not defined.
@@ -440,7 +440,7 @@ export function recommendParking(graph: Graph, scene: LoadedScene, roomId: strin
 - [ ] **Step 4: Run test, confirm pass**
 
 ```bash
-npm test
+pnpm test
 ```
 
 Expected: PASS.
@@ -482,7 +482,7 @@ describe("buildGraph auto-connect", () => {
 - [ ] **Step 6: Run tests, confirm all pass**
 
 ```bash
-npm test
+pnpm test
 ```
 
 Expected: PASS (3 tests).
@@ -512,7 +512,7 @@ describe("stair edges", () => {
 - [ ] **Step 8: Run tests**
 
 ```bash
-npm test
+pnpm test
 ```
 
 Expected: PASS (4 tests).
@@ -559,7 +559,7 @@ describe("recommendParking", () => {
 - [ ] **Step 10: Run tests**
 
 ```bash
-npm test
+pnpm test
 ```
 
 Expected: PASS (6 tests).
@@ -678,7 +678,7 @@ export async function loadScene(glbUrl: string, graphUrl: string): Promise<Loade
 - [ ] **Step 2: Verify it compiles**
 
 ```bash
-npx tsc --noEmit
+pnpm exec tsc --noEmit
 ```
 
 Expected: no errors.
@@ -869,7 +869,7 @@ export class Viewer {
 - [ ] **Step 2: Verify it compiles**
 
 ```bash
-npx tsc --noEmit
+pnpm exec tsc --noEmit
 ```
 
 Expected: no errors.
@@ -1029,7 +1029,7 @@ export function mountUIDeps(panel: HTMLElement, scene: LoadedScene, viewer: View
 - [ ] **Step 2: Verify it compiles**
 
 ```bash
-npx tsc --noEmit
+pnpm exec tsc --noEmit
 ```
 
 Expected: no errors.
@@ -1085,7 +1085,7 @@ boot();
 - [ ] **Step 2: Verify build**
 
 ```bash
-npm run build
+pnpm build
 ```
 
 Expected: build succeeds.
@@ -1130,7 +1130,7 @@ Open the app with `?debug=1` to see waypoints rendered as colored spheres.
 - [ ] **Step 3: Run dev server for manual smoke**
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Expected: server boots on localhost; if no `school.glb` is present yet, the error overlay shows a load failure (this is expected until the user supplies the asset).
@@ -1140,8 +1140,8 @@ Stop the server (Ctrl-C).
 - [ ] **Step 4: Run final test suite and typecheck**
 
 ```bash
-npm test
-npx tsc --noEmit
+pnpm test
+pnpm exec tsc --noEmit
 ```
 
 Expected: all tests pass, no type errors.
@@ -1157,9 +1157,9 @@ git commit -m "docs: asset placeholders and authoring README"
 
 ## Acceptance Criteria
 
-- `npm test` passes all six Vitest cases (basic path, two auto-connect tests, stair routing, parking recommendation, disconnected graph).
-- `npm run build` succeeds with no TypeScript errors.
-- `npm run dev` serves the app. With a valid `school.glb` and populated `graph.json`:
+- `pnpm test` passes all six Vitest cases (basic path, two auto-connect tests, stair routing, parking recommendation, disconnected graph).
+- `pnpm build` succeeds with no TypeScript errors.
+- `pnpm dev` serves the app. With a valid `school.glb` and populated `graph.json`:
   - Typing a room number into "To" + Go highlights the recommended parking lot and draws a red line from its entrance to the room.
   - Typing rooms into both "From" and "To" draws a red line between them.
   - Cross-floor routes pass through paired stair empties.
