@@ -1120,7 +1120,7 @@ Append to a new file `public/README.md`:
 - `school.glb` — exported from Blender. Must include named `Empty` objects:
   - `room.<number>.<floor>` (e.g. `room.204.2`)
   - `parking.<name>.entrance`
-  - `node.<id>` for hallway waypoints
+  - `node.<id>` for outdoor walkway waypoints (Portola has no interior hallways — every classroom door opens onto an exterior path)
   - `stair.<id>.<floor>` paired across floors
 - `graph.json` — `{ "edges": [["node.a","node.b"], ...] }`. Rooms and parking entrances auto-connect to nearest waypoint at load time.
 

@@ -54,7 +54,7 @@ The two runtime assets live in `/public/` and are produced once in Blender:
 |----------------------------------|-----------------------------------------------------------------|
 | `room.<number>.<floor>`          | A classroom, e.g. `room.204.2`.                                 |
 | `parking.<name>.entrance`        | Pedestrian entrance to a parking lot, e.g. `parking.north.entrance`. |
-| `node.<id>`                      | A hallway/path waypoint, e.g. `node.12`.                        |
+| `node.<id>`                      | An outdoor-walkway waypoint, e.g. `node.12`. Portola has no interior hallways — rooms open onto exterior paths, so place waypoints along those outdoor walkways. |
 | `stair.<id>.<floor>`             | One end of a stairwell. Two empties sharing `<id>` form a stair edge across floors. |
 
 Floor numbers are integers (`1` or `2`).
