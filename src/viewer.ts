@@ -167,6 +167,30 @@ export class Viewer {
     return tl;
   }
 
+  tweenCameraToFitRoute(points: Vector3[]): gsap.core.Timeline {
+    const box = new Box3().setFromPoints(points);
+    const center = new Vector3(); box.getCenter(center);
+    const size = new Vector3(); box.getSize(size);
+    const radius = Math.max(size.x, size.y, size.z, 10) * 1.25;
+    const dir = new Vector3(0, 0.6, 1).normalize();
+    const targetPos = center.clone().addScaledVector(dir, radius * 2.2);
+
+    this.controls.enabled = false;
+    const tl = gsap.timeline({
+      onComplete: () => { this.controls.enabled = true; this.controls.update(); },
+    });
+    tl.to(this.camera.position, {
+      x: targetPos.x, y: targetPos.y, z: targetPos.z,
+      duration: DUR.glide, ease: EASE.power3InOut,
+    }, 0);
+    tl.to(this.controls.target, {
+      x: center.x, y: center.y, z: center.z,
+      duration: DUR.glide, ease: EASE.power3InOut,
+      onUpdate: () => this.controls.update(),
+    }, 0);
+    return tl;
+  }
+
   clearRoute(): void {
     this.routeLayer.children.forEach((child) => {
       if (child instanceof Line2) child.geometry.dispose();
