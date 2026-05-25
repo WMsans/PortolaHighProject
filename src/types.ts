@@ -1,4 +1,4 @@
-import type { Vector3 } from "three";
+import type { Object3D, Vector3 } from "three";
 
 export type Floor = 1 | 2;
 
@@ -17,12 +17,13 @@ export interface Stair {
 export type Edge = [string, string];
 
 export interface LoadedScene {
-  modelRoot: import("three").Object3D;
+  modelRoot: Object3D;
   rooms: Map<string, Node>;     // "204" -> Node
   parking: Map<string, Node>;   // "north" -> Node
   waypoints: Map<string, Node>; // "node.12" -> Node
   stairs: Stair[];
   edges: Edge[];
+  floorMeshes: { 1: Object3D[]; 2: Object3D[] };
 }
 
 export interface GraphFile {

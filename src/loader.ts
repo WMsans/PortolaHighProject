@@ -1,6 +1,6 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
-import { Vector3 } from "three";
+import { Box3, Mesh, Object3D, Vector3 } from "three";
 import type { Floor, GraphFile, LoadedScene, Node, Stair } from "./types";
 import { FLOOR_Z_OFFSET } from "./types";
 
@@ -46,6 +46,19 @@ async function fetchGlbBuffer(glb: string | File | Blob): Promise<ArrayBuffer> {
     throw new Error(`File at ${glb} is not a valid .glb (missing glTF magic). Use the file picker to choose a .glb file.`);
   }
   return buf;
+}
+
+export function classifyMeshesByFloor(root: Object3D): { 1: Object3D[]; 2: Object3D[] } {
+  const groups: { 1: Object3D[]; 2: Object3D[] } = { 1: [], 2: [] };
+  const center = new Vector3();
+  const threshold = FLOOR_Z_OFFSET / 2;
+  root.traverse((obj) => {
+    if (!(obj instanceof Mesh)) return;
+    new Box3().setFromObject(obj).getCenter(center);
+    if (center.z > threshold) groups[2].push(obj);
+    else groups[1].push(obj);
+  });
+  return groups;
 }
 
 export async function loadScene(glb: string | File | Blob, graphUrl: string): Promise<LoadedScene> {
@@ -111,5 +124,7 @@ export async function loadScene(glb: string | File | Blob, graphUrl: string): Pr
     stairs.push({ id: groupId, endpoints: sorted });
   }
 
-  return { modelRoot, rooms, parking, waypoints, stairs, edges: graphResp.edges ?? [] };
+  const floorMeshes = classifyMeshesByFloor(modelRoot);
+
+  return { modelRoot, rooms, parking, waypoints, stairs, edges: graphResp.edges ?? [], floorMeshes };
 }
