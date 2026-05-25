@@ -5,7 +5,9 @@ html, body, #app { height: 100%; width: 100%; overflow: hidden; font-family: sys
   position: absolute; top: 16px; left: 16px; z-index: 10;
   background: rgba(255,255,255,0.95); padding: 16px; border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.15); min-width: 280px;
+  transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
 }
+#panel:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(0,0,0,0.18); }
 #panel label { display: block; font-size: 12px; font-weight: 600; margin-top: 8px; }
 #panel input, #panel button { width: 100%; padding: 8px; margin-top: 4px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
 #panel button { position: relative; overflow: hidden; transform-origin: center; background: #c0392b; color: white; border: none; cursor: pointer; margin-top: 12px; }
@@ -13,7 +15,7 @@ html, body, #app { height: 100%; width: 100%; overflow: hidden; font-family: sys
 #panel .floor-toggle { display: flex; gap: 4px; margin-top: 4px; }
 #panel .floor-toggle button { flex: 1; padding: 6px; background: #ecf0f1; color: #333; }
 #panel .floor-toggle button.active { background: #2c3e50; color: white; }
-#panel .result { margin-top: 12px; font-size: 13px; color: #2c3e50; min-height: 1em; }
+#panel .result { margin-top: 12px; font-size: 13px; color: #2c3e50; min-height: 1em; transform-origin: left center; }
 .invalid-flash { animation: invalid-flash 0.6s ease-out; }
 @keyframes invalid-flash {
   0%   { box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.6); border-color: #e74c3c; }

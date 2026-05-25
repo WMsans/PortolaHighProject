@@ -164,6 +164,23 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
     );
   }
 
+  function setResult(text: string): void {
+    if (result.textContent && result.textContent.trim()) {
+      gsap.to(result, {
+        scale: 0.9, opacity: 0, duration: 0.14, ease: "power2.in",
+        onComplete: () => {
+          result.textContent = text;
+          gsap.fromTo(result, { y: 8, opacity: 0, scale: 0.96 },
+                              { y: 0, opacity: 1, scale: 1, duration: 0.28, ease: "back.out(2)" });
+        },
+      });
+    } else {
+      result.textContent = text;
+      gsap.fromTo(result, { y: 8, opacity: 0, scale: 0.96 },
+                          { y: 0, opacity: 1, scale: 1, duration: 0.28, ease: "back.out(2)" });
+    }
+  }
+
   function runRoute(): void {
     const toRaw = toInput.value;
     const toId = resolveId(toRaw);
@@ -179,7 +196,7 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
       if (!rec) { toast("No route available — check graph.json"); return; }
       viewer.drawRoute(rec.path.map((n) => n.position));
       showResolveTick(toInput);
-      result.textContent = `Park at ${formatLot(rec.lot)} — ${Math.round(rec.distance)} m walk`;
+      setResult(`Park at ${formatLot(rec.lot)} — ${Math.round(rec.distance)} m walk`);
       return;
     }
 
@@ -191,7 +208,7 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
     showResolveTick(toInput);
     let total = 0;
     for (let i = 1; i < path.length; i++) total += path[i].position.distanceTo(path[i - 1].position);
-    result.textContent = `Route: ${prettyId(fromId)} → ${prettyId(toId)}, ${Math.round(total)} m`;
+    setResult(`Route: ${prettyId(fromId)} → ${prettyId(toId)}, ${Math.round(total)} m`);
   }
 }
 
