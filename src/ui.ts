@@ -1,7 +1,7 @@
 import type { LoadedScene } from "./types";
 import type { FloorView, Viewer } from "./viewer";
 import { buildGraph, findPath, recommendParking, type Graph } from "./graph";
-import { gsap } from "./motion";
+import { gsap, Flip } from "./motion";
 
 export interface UIDeps {
   scene: LoadedScene;
@@ -61,6 +61,7 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
 
     <label>Floor</label>
     <div class="floor-toggle" role="tablist">
+      <div class="pill"></div>
       <button data-floor="1">1</button>
       <button data-floor="2">2</button>
       <button data-floor="both" class="active">Both</button>
@@ -82,10 +83,26 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
   attachFocusGlow(fromInput);
   attachFocusGlow(toInput);
 
+  const pill = panel.querySelector<HTMLDivElement>(".floor-toggle .pill")!;
+  function positionPill(activeBtn: HTMLButtonElement): void {
+    const fr = activeBtn.getBoundingClientRect();
+    const pr = activeBtn.parentElement!.getBoundingClientRect();
+    pill.style.width  = `${fr.width}px`;
+    pill.style.height = `${fr.height}px`;
+    pill.style.left   = `${fr.left - pr.left}px`;
+    pill.style.top    = `${fr.top  - pr.top}px`;
+  }
+  positionPill(floorBtns.find((b) => b.classList.contains("active"))!);
+
   floorBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
+      squish(btn);
+      const state = Flip.getState(pill);
       floorBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
+      positionPill(btn);
+      Flip.from(state, { duration: 0.28, ease: "back.out(1.8)" });
+
       const raw = btn.dataset.floor!;
       const f: FloorView = raw === "both" ? "both" : (Number(raw) as 1 | 2);
       viewer.setActiveFloor(f);
