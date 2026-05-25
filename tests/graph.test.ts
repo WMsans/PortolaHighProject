@@ -15,6 +15,7 @@ function scene(partial: Partial<LoadedScene>): LoadedScene {
     waypoints: new Map(),
     stairs: [],
     edges: [],
+    floorMeshes: { 1: [], 2: [] },
     ...partial,
   };
 }
