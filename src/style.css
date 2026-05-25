@@ -27,4 +27,5 @@ html, body, #app { height: 100%; width: 100%; overflow: hidden; font-family: sys
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   z-index: 100; padding: 32px; text-align: center;
 }
+#error-overlay[hidden] { display: none; }
 #error-overlay button { margin-top: 16px; padding: 10px 24px; cursor: pointer; }

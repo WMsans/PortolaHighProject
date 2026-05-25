@@ -4,15 +4,20 @@ import {
   DirectionalLight,
   Group,
   Material,
+  HemisphereLight,
   Mesh,
   MeshBasicMaterial,
+  MOUSE,
   PerspectiveCamera,
+  PMREMGenerator,
   Scene,
   SphereGeometry,
+  TOUCH,
   Vector3,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Line2 } from "three/examples/jsm/lines/Line2.js";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
@@ -30,7 +35,7 @@ export class Viewer {
   private readonly routeLayer = new Group();
   private readonly debugLayer = new Group();
   private routeMaterial: LineMaterial;
-  private defaultCameraPos = new Vector3(0, -200, 200);
+  private defaultCameraPos = new Vector3(0, 200, 200);
   private defaultTarget = new Vector3(0, 0, 0);
   private modelBounds: Box3 | null = null;
   private animFrameId = 0;
@@ -44,7 +49,6 @@ export class Viewer {
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
 
     this.camera = new PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 5000);
-    this.camera.up.set(0, 0, 1);
     this.camera.position.copy(this.defaultCameraPos);
     this.camera.lookAt(this.defaultTarget);
 
@@ -55,11 +59,29 @@ export class Viewer {
     this.controls.minDistance = 5;
     this.controls.maxDistance = 2000;
     this.controls.target.copy(this.defaultTarget);
+    // Blender/Unity-style navigation: MMB pans, RMB orbits, wheel zooms to cursor.
+    this.controls.mouseButtons = {
+      LEFT: MOUSE.ROTATE,
+      MIDDLE: MOUSE.PAN,
+      RIGHT: MOUSE.ROTATE,
+    };
+    this.controls.touches = { ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN };
+    this.controls.panSpeed = 1.0;
+    this.controls.rotateSpeed = 0.8;
+    this.controls.zoomSpeed = 1.2;
+    this.controls.zoomToCursor = true;
 
-    this.scene.add(new AmbientLight(0xffffff, 0.6));
-    const sun = new DirectionalLight(0xffffff, 0.8);
+    this.scene.add(new AmbientLight(0xffffff, 2.5));
+    this.scene.add(new HemisphereLight(0xffffff, 0x444444, 2.0));
+    const sun = new DirectionalLight(0xffffff, 2.5);
     sun.position.set(100, -100, 200);
     this.scene.add(sun);
+
+    const pmrem = new PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+
+    this.renderer.toneMappingExposure = 1.5;
 
     this.scene.add(this.routeLayer);
     this.scene.add(this.debugLayer);
@@ -87,7 +109,7 @@ export class Viewer {
     this.modelBounds.getSize(size);
     const radius = Math.max(size.x, size.y, size.z);
     this.defaultTarget.copy(center);
-    this.defaultCameraPos.set(center.x, center.y - radius * 1.2, center.z + radius * 0.8);
+    this.defaultCameraPos.set(center.x, center.y + radius * 0.8, center.z + radius * 1.2);
     this.recenter();
   }
 
@@ -179,7 +201,7 @@ export class Viewer {
     const size = new Vector3();
     box.getSize(size);
     const radius = Math.max(size.x, size.y, size.z, 10);
-    const dir = new Vector3(0, -1, 0.6).normalize();
+    const dir = new Vector3(0, 0.6, 1).normalize();
     this.camera.position.copy(center).addScaledVector(dir, radius * 2.2);
     this.controls.target.copy(center);
     this.controls.update();
