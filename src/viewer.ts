@@ -25,6 +25,7 @@ import { Line2 } from "three/examples/jsm/lines/Line2.js";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import type { LoadedScene } from "./types";
+import type { Object3D } from "three";
 import { gsap, DUR, EASE } from "./motion";
 
 export type FloorView = 1 | 2 | "both";
@@ -45,6 +46,9 @@ export class Viewer {
   private routeProgress = 0;
   private pinMesh: Mesh | null = null;
   private ringMeshes: Mesh[] = [];
+  private floorGroups: { 1: Object3D[]; 2: Object3D[] } | null = null;
+  private currentFloor: FloorView = "both";
+  private floorTl: gsap.core.Timeline | null = null;
   private defaultCameraPos = new Vector3(0, 200, 200);
   private defaultTarget = new Vector3(0, 0, 0);
   private modelBounds: Box3 | null = null;
@@ -111,6 +115,7 @@ export class Viewer {
 
   attachModel(loaded: LoadedScene): void {
     this.scene.add(loaded.modelRoot);
+    this.floorGroups = loaded.floorMeshes;
     this.modelBounds = new Box3().setFromObject(loaded.modelRoot);
     if (this.modelBounds.isEmpty()) return;
     const center = new Vector3();
@@ -277,9 +282,42 @@ export class Viewer {
     this.routeLine.computeLineDistances();
   }
 
-  setActiveFloor(_floor: FloorView): void {
-    // v1: model has no separable floor geometry, so this only affects debug spheres.
-    // Reserved for future per-floor visual treatments.
+  setActiveFloor(floor: FloorView): void {
+    this.extrudeFloor(floor);
+  }
+
+  extrudeFloor(target: FloorView): gsap.core.Timeline {
+    this.floorTl?.kill();
+    const groups = this.floorGroups;
+    const tl = gsap.timeline();
+    if (!groups) { this.floorTl = tl; return tl; }
+
+    const showFloor = (meshes: Object3D[], show: boolean) => {
+      meshes.forEach((m) => {
+        const material = (m as Mesh).material as Material | undefined;
+        if (material) {
+          material.transparent = true;
+          tl.to(material, { opacity: show ? 1 : 0, duration: DUR.floorSwitch, ease: EASE.power3InOut,
+            onComplete: () => { if (show) material.transparent = false; } }, 0.05);
+        }
+        tl.to(m.position, {
+          z: show ? (m.userData.origZ ?? m.position.z) : (m.userData.origZ ?? m.position.z) + 8,
+          duration: DUR.floorSwitch, ease: show ? EASE.backOutSubtle : EASE.power2In,
+        }, 0.05);
+      });
+    };
+
+    for (const list of [groups[1], groups[2]]) for (const m of list) {
+      if (m.userData.origZ === undefined) m.userData.origZ = m.position.z;
+    }
+
+    const want1 = target === 1 || target === "both";
+    const want2 = target === 2 || target === "both";
+    showFloor(groups[1], want1);
+    showFloor(groups[2], want2);
+    this.currentFloor = target;
+    this.floorTl = tl;
+    return tl;
   }
 
   recenter(): void {
@@ -347,18 +385,6 @@ export class Viewer {
       }
     });
     this.debugLayer.clear();
-  }
-
-  private frameBounds(box: Box3): void {
-    const center = new Vector3();
-    box.getCenter(center);
-    const size = new Vector3();
-    box.getSize(size);
-    const radius = Math.max(size.x, size.y, size.z, 10);
-    const dir = new Vector3(0, 0.6, 1).normalize();
-    this.camera.position.copy(center).addScaledVector(dir, radius * 2.2);
-    this.controls.target.copy(center);
-    this.controls.update();
   }
 
   private onResize(): void {
