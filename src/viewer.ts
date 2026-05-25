@@ -46,9 +46,7 @@ export class Viewer {
   private routeProgress = 0;
   private pinMesh: Mesh | null = null;
   private ringMeshes: Mesh[] = [];
-  private floorGroups: { 1: Object3D[]; 2: Object3D[] } | null = null;
-  private currentFloor: FloorView = "both";
-  private floorTl: gsap.core.Timeline | null = null;
+  private breathingHalos: { mesh: Mesh; tween: gsap.core.Tween }[] = [];
   private defaultCameraPos = new Vector3(0, 200, 200);
   private defaultTarget = new Vector3(0, 0, 0);
   private modelBounds: Box3 | null = null;
@@ -56,6 +54,7 @@ export class Viewer {
   private resizeRafId = 0;
   private disposed = false;
   private readonly onResizeHandler = (): void => this.onResize();
+  private sun: DirectionalLight;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
@@ -85,11 +84,24 @@ export class Viewer {
     this.controls.zoomSpeed = 1.2;
     this.controls.zoomToCursor = true;
 
+    this.controls.autoRotate = false;
+    this.controls.autoRotateSpeed = 0.15;
+    let idleTimer = 0;
+    const armIdle = () => {
+      this.controls.autoRotate = false;
+      window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => { this.controls.autoRotate = true; }, 8000);
+    };
+    armIdle();
+    this.controls.addEventListener("start", armIdle);
+    window.addEventListener("pointerdown", armIdle);
+    window.addEventListener("keydown",     armIdle);
+
     this.scene.add(new AmbientLight(0xffffff, 2.5));
     this.scene.add(new HemisphereLight(0xffffff, 0x444444, 2.0));
-    const sun = new DirectionalLight(0xffffff, 2.5);
-    sun.position.set(100, -100, 200);
-    this.scene.add(sun);
+    this.sun = new DirectionalLight(0xffffff, 2.5);
+    this.sun.position.set(100, -100, 200);
+    this.scene.add(this.sun);
 
     const pmrem = new PMREMGenerator(this.renderer);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -111,6 +123,15 @@ export class Viewer {
 
     window.addEventListener("resize", this.onResizeHandler);
     this.animate();
+
+    gsap.to(this.sun.position, {
+      keyframes: [
+        { x: 100, z: 200, duration: 30 },
+        { x: -60, z: 220, duration: 30 },
+        { x: 100, z: 200, duration: 0 },
+      ],
+      repeat: -1, ease: "sine.inOut",
+    });
   }
 
   attachModel(loaded: LoadedScene): void {
@@ -168,6 +189,23 @@ export class Viewer {
     this.routeLayer.add(line);
     this.routeLine = line;
     this.progress = 0;
+
+    points.forEach((p, i) => {
+      const geo = new RingGeometry(0.7, 0.95, 18);
+      const mat = new MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.5, side: DoubleSide, depthTest: false });
+      const halo = new Mesh(geo, mat);
+      halo.position.copy(p);
+      halo.rotation.x = -Math.PI / 2;
+      halo.renderOrder = ROUTE_RENDER_ORDER;
+      this.routeLayer.add(halo);
+      const phase = (i * 0.37) % 1;
+      const tween = gsap.to([halo.scale, mat], {
+        keyframes: [{ x: 1.08, y: 1.08, opacity: 0.9, duration: 1.2 },
+                    { x: 1.0,  y: 1.0,  opacity: 0.5, duration: 1.2 }],
+        repeat: -1, ease: "sine.inOut", delay: -phase * 2.4,
+      });
+      this.breathingHalos.push({ mesh: halo, tween });
+    });
   }
 
   animateRouteDraw(points: Vector3[]): gsap.core.Timeline {
@@ -233,6 +271,15 @@ export class Viewer {
         { opacity: 0.6 },
         { opacity: 0, duration: 0.7, ease: "power2.out" }, 0.1 + i * 0.12);
     }
+
+    tl.eventCallback("onComplete", () => {
+      if (!this.pinMesh) return;
+      gsap.to(this.pinMesh.scale, {
+        x: 1.15, y: 1.15, z: 1.15,
+        yoyo: true, repeat: -1, duration: 0.5, ease: EASE.elasticOut,
+      });
+    });
+
     return tl;
   }
 
@@ -259,6 +306,13 @@ export class Viewer {
 
   clearRoute(): void {
     this.clearPin();
+    for (const h of this.breathingHalos) {
+      h.tween.kill();
+      this.routeLayer.remove(h.mesh);
+      h.mesh.geometry.dispose();
+      (h.mesh.material as Material).dispose();
+    }
+    this.breathingHalos = [];
     this.routeLayer.children.forEach((child) => {
       if (child instanceof Line2) child.geometry.dispose();
     });
@@ -398,6 +452,7 @@ export class Viewer {
 
   private clearPin(): void {
     if (this.pinMesh) {
+      gsap.killTweensOf(this.pinMesh.scale);
       this.routeLayer.remove(this.pinMesh);
       this.pinMesh.geometry.dispose();
       (this.pinMesh.material as Material).dispose();
