@@ -23,5 +23,16 @@ export function playIntro(viewer: Viewer, scene: LoadedScene, panel: HTMLElement
   const innerEls = panel.querySelectorAll<HTMLElement>("label, input, button, .floor-toggle, .result");
   tl.fromTo(innerEls, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.22, stagger: 0.04, ease: EASE.backOutSubtle }, 1.85);
 
+  const skip = () => {
+    if (!tl.isActive()) return;
+    tl.progress(1, false);
+  };
+  window.addEventListener("pointerdown", skip, { once: true });
+  window.addEventListener("keydown",     skip, { once: true });
+  tl.eventCallback("onComplete", () => {
+    window.removeEventListener("pointerdown", skip);
+    window.removeEventListener("keydown", skip);
+  });
+
   return tl;
 }
