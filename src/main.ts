@@ -1,6 +1,9 @@
 import { loadScene } from "./loader";
+import { registerMotion } from "./motion";
 import { Viewer } from "./viewer";
 import { mountUIDeps, toast } from "./ui";
+
+registerMotion();
 
 const canvasEl = document.getElementById("canvas");
 const panelEl = document.getElementById("panel");
