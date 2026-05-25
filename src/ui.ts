@@ -79,6 +79,9 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
   const result    = panel.querySelector<HTMLDivElement>("#result")!;
   const floorBtns = Array.from(panel.querySelectorAll<HTMLButtonElement>(".floor-toggle button"));
 
+  attachFocusGlow(fromInput);
+  attachFocusGlow(toInput);
+
   floorBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
       floorBtns.forEach((b) => b.classList.remove("active"));
@@ -124,6 +127,43 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
     el.classList.add("invalid-flash");
   }
 
+  function attachFocusGlow(input: HTMLInputElement): void {
+    input.addEventListener("focus", () => {
+      const glow = document.createElement("span");
+      glow.className = "focus-glow";
+      input.parentElement!.appendChild(glow);
+      const r = input.getBoundingClientRect();
+      const pr = input.parentElement!.getBoundingClientRect();
+      glow.style.left = `${r.left - pr.left}px`;
+      glow.style.top  = `${r.top  - pr.top}px`;
+      glow.style.width  = `${r.width}px`;
+      glow.style.height = `${r.height}px`;
+      gsap.fromTo(
+        glow,
+        { scale: 0.6, opacity: 0 },
+        { scale: 1, opacity: 0.5, duration: 0.22, ease: "power2.out",
+          onComplete: () => gsap.to(glow, { opacity: 0, duration: 0.26, onComplete: () => glow.remove() }) }
+      );
+    });
+  }
+
+  function showResolveTick(input: HTMLInputElement): void {
+    const tick = document.createElement("span");
+    tick.className = "resolve-tick";
+    tick.textContent = "\u2713";
+    input.parentElement!.appendChild(tick);
+    const r = input.getBoundingClientRect();
+    const pr = input.parentElement!.getBoundingClientRect();
+    tick.style.left = `${r.right - pr.left - 22}px`;
+    tick.style.top  = `${r.top   - pr.top + 8}px`;
+    gsap.fromTo(
+      tick,
+      { scale: 0, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.18, ease: "back.out(2.5)",
+        onComplete: () => gsap.to(tick, { opacity: 0, duration: 0.2, delay: 0.4, onComplete: () => tick.remove() }) }
+    );
+  }
+
   function runRoute(): void {
     const toRaw = toInput.value;
     const toId = resolveId(toRaw);
@@ -138,6 +178,7 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
       const rec = recommendParking(graph, scene, toId);
       if (!rec) { toast("No route available — check graph.json"); return; }
       viewer.drawRoute(rec.path.map((n) => n.position));
+      showResolveTick(toInput);
       result.textContent = `Park at ${formatLot(rec.lot)} — ${Math.round(rec.distance)} m walk`;
       return;
     }
@@ -147,6 +188,7 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
     const path = findPath(graph, fromId, toId);
     if (!path) { toast("No route available — check graph.json"); return; }
     viewer.drawRoute(path.map((n) => n.position));
+    showResolveTick(toInput);
     let total = 0;
     for (let i = 1; i < path.length; i++) total += path[i].position.distanceTo(path[i - 1].position);
     result.textContent = `Route: ${prettyId(fromId)} → ${prettyId(toId)}, ${Math.round(total)} m`;
