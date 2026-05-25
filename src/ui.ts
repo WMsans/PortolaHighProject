@@ -1,6 +1,7 @@
 import type { LoadedScene } from "./types";
 import type { FloorView, Viewer } from "./viewer";
 import { buildGraph, findPath, recommendParking, type Graph } from "./graph";
+import { gsap } from "./motion";
 
 export interface UIDeps {
   scene: LoadedScene;
@@ -74,17 +75,22 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
     return null;
   }
 
-  function shake(el: HTMLElement): void {
-    el.classList.remove("shake");
+  function rejectBounce(el: HTMLElement): void {
+    gsap.fromTo(
+      el,
+      { x: -8 },
+      { x: 0, duration: 0.55, ease: "back.inOut(4)", overwrite: "auto" }
+    );
+    el.classList.remove("invalid-flash");
     void el.offsetWidth;
-    el.classList.add("shake");
+    el.classList.add("invalid-flash");
   }
 
   function runRoute(): void {
     const toRaw = toInput.value;
     const toId = resolveId(toRaw);
     if (!toId || !scene.rooms.has(toId)) {
-      shake(toInput);
+      rejectBounce(toInput);
       toast(`Room ${toRaw || "?"} not found`);
       return;
     }
@@ -99,7 +105,7 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
     }
 
     const fromId = resolveId(fromRaw);
-    if (!fromId) { shake(fromInput); toast(`"${fromRaw}" not found`); return; }
+    if (!fromId) { rejectBounce(fromInput); toast(`"${fromRaw}" not found`); return; }
     const path = findPath(graph, fromId, toId);
     if (!path) { toast("No route available — check graph.json"); return; }
     viewer.drawRoute(path.map((n) => n.position));
