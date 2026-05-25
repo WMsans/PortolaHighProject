@@ -22,6 +22,7 @@ import { Line2 } from "three/examples/jsm/lines/Line2.js";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import type { LoadedScene } from "./types";
+import { gsap, DUR, EASE } from "./motion";
 
 export type FloorView = 1 | 2 | "both";
 
@@ -35,6 +36,10 @@ export class Viewer {
   private readonly routeLayer = new Group();
   private readonly debugLayer = new Group();
   private routeMaterial: LineMaterial;
+  private routePoints: Vector3[] = [];
+  private routeTotalLen = 0;
+  private routeLine: Line2 | null = null;
+  private routeProgress = 0;
   private defaultCameraPos = new Vector3(0, 200, 200);
   private defaultTarget = new Vector3(0, 0, 0);
   private modelBounds: Box3 | null = null;
@@ -141,24 +146,49 @@ export class Viewer {
   drawRoute(points: Vector3[]): void {
     this.clearRoute();
     if (points.length < 2) return;
-    const flat: number[] = [];
-    for (const p of points) flat.push(p.x, p.y, p.z);
+    this.routePoints = points.map((p) => p.clone());
+    this.routeTotalLen = 0;
+    for (let i = 1; i < points.length; i++) this.routeTotalLen += points[i].distanceTo(points[i - 1]);
     const geo = new LineGeometry();
-    geo.setPositions(flat);
+    geo.setPositions([points[0].x, points[0].y, points[0].z,
+                      points[0].x, points[0].y, points[0].z]);
     const line = new Line2(geo, this.routeMaterial);
     line.computeLineDistances();
     line.renderOrder = ROUTE_RENDER_ORDER;
     this.routeLayer.add(line);
-    this.frameBounds(new Box3().setFromPoints(points));
+    this.routeLine = line;
+    this.progress = 0;
+  }
+
+  animateRouteDraw(points: Vector3[]): gsap.core.Timeline {
+    this.drawRoute(points);
+    const tl = gsap.timeline();
+    tl.to(this, { progress: 1, duration: DUR.routeDraw, ease: EASE.sineInOut });
+    return tl;
   }
 
   clearRoute(): void {
     this.routeLayer.children.forEach((child) => {
-      if (child instanceof Line2) {
-        child.geometry.dispose();
-      }
+      if (child instanceof Line2) child.geometry.dispose();
     });
     this.routeLayer.clear();
+    this.routePoints = [];
+    this.routeLine = null;
+    this.routeProgress = 0;
+  }
+
+  get progress(): number { return this.routeProgress; }
+  set progress(p: number) {
+    this.routeProgress = p;
+    if (!this.routeLine) return;
+    const pos = this.buildPartialPositions(p);
+    if (pos.length < 6) {
+      this.routeLine.visible = false;
+      return;
+    }
+    this.routeLine.visible = true;
+    this.routeLine.geometry.setPositions(pos);
+    this.routeLine.computeLineDistances();
   }
 
   setActiveFloor(_floor: FloorView): void {
@@ -183,6 +213,29 @@ export class Viewer {
     this.routeMaterial.dispose();
     this.controls.dispose();
     this.renderer.dispose();
+  }
+
+  private buildPartialPositions(p: number): number[] {
+    if (this.routePoints.length < 2) return [];
+    const target = this.routeTotalLen * Math.max(0, Math.min(1, p));
+    const out: number[] = [];
+    out.push(this.routePoints[0].x, this.routePoints[0].y, this.routePoints[0].z);
+    let acc = 0;
+    for (let i = 1; i < this.routePoints.length; i++) {
+      const prev = this.routePoints[i - 1];
+      const cur  = this.routePoints[i];
+      const seg  = cur.distanceTo(prev);
+      if (acc + seg >= target) {
+        const t = (target - acc) / seg;
+        out.push(prev.x + (cur.x - prev.x) * t,
+                 prev.y + (cur.y - prev.y) * t,
+                 prev.z + (cur.z - prev.z) * t);
+        return out;
+      }
+      acc += seg;
+      out.push(cur.x, cur.y, cur.z);
+    }
+    return out;
   }
 
   private disposeDebugLayer(): void {
