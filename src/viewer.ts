@@ -15,6 +15,9 @@ import {
   TOUCH,
   Vector3,
   WebGLRenderer,
+  CylinderGeometry,
+  RingGeometry,
+  DoubleSide,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -40,6 +43,8 @@ export class Viewer {
   private routeTotalLen = 0;
   private routeLine: Line2 | null = null;
   private routeProgress = 0;
+  private pinMesh: Mesh | null = null;
+  private ringMeshes: Mesh[] = [];
   private defaultCameraPos = new Vector3(0, 200, 200);
   private defaultTarget = new Vector3(0, 0, 0);
   private modelBounds: Box3 | null = null;
@@ -191,7 +196,43 @@ export class Viewer {
     return tl;
   }
 
+  animatePinDrop(position: Vector3): gsap.core.Timeline {
+    this.clearPin();
+    const pinGeo = new CylinderGeometry(0, 1.5, 4, 16);
+    const pinMat = new MeshBasicMaterial({ color: 0xff2222, depthTest: false });
+    const pin = new Mesh(pinGeo, pinMat);
+    pin.rotation.x = Math.PI;
+    pin.position.copy(position).add(new Vector3(0, 0, 12));
+    pin.scale.set(0.6, 0.6, 0.6);
+    pin.renderOrder = ROUTE_RENDER_ORDER + 1;
+    this.routeLayer.add(pin);
+    this.pinMesh = pin;
+
+    const tl = gsap.timeline();
+    tl.to(pin.position, { z: position.z + 1, duration: DUR.pinDrop, ease: EASE.bounceOut }, 0);
+    tl.to(pin.scale,    { x: 1, y: 1, z: 1, duration: DUR.pinDrop, ease: EASE.backOutStrong }, 0);
+
+    for (let i = 0; i < 3; i++) {
+      const ringGeo = new RingGeometry(0.5, 0.8, 24);
+      const ringMat = new MeshBasicMaterial({ color: 0xff2222, transparent: true, opacity: 0.6, side: DoubleSide, depthTest: false });
+      const ring = new Mesh(ringGeo, ringMat);
+      ring.position.copy(position);
+      ring.rotation.x = -Math.PI / 2;
+      ring.renderOrder = ROUTE_RENDER_ORDER + 2;
+      this.routeLayer.add(ring);
+      this.ringMeshes.push(ring);
+      tl.fromTo(ring.scale,
+        { x: 0.5, y: 0.5, z: 0.5 },
+        { x: 4, y: 4, z: 1, duration: 0.7, ease: "power2.out" }, 0.1 + i * 0.12);
+      tl.fromTo(ringMat,
+        { opacity: 0.6 },
+        { opacity: 0, duration: 0.7, ease: "power2.out" }, 0.1 + i * 0.12);
+    }
+    return tl;
+  }
+
   clearRoute(): void {
+    this.clearPin();
     this.routeLayer.children.forEach((child) => {
       if (child instanceof Line2) child.geometry.dispose();
     });
@@ -260,6 +301,21 @@ export class Viewer {
       out.push(cur.x, cur.y, cur.z);
     }
     return out;
+  }
+
+  private clearPin(): void {
+    if (this.pinMesh) {
+      this.routeLayer.remove(this.pinMesh);
+      this.pinMesh.geometry.dispose();
+      (this.pinMesh.material as Material).dispose();
+      this.pinMesh = null;
+    }
+    for (const r of this.ringMeshes) {
+      this.routeLayer.remove(r);
+      r.geometry.dispose();
+      (r.material as Material).dispose();
+    }
+    this.ringMeshes = [];
   }
 
   private disposeDebugLayer(): void {
