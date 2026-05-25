@@ -161,14 +161,24 @@ function prettyId(id: string): string {
   return id.startsWith("parking.") ? formatLot(id.slice("parking.".length)) : id;
 }
 
-let toastTimer: number | undefined;
+let toastTl: gsap.core.Timeline | null = null;
+
 export function toast(msg: string): void {
   const el = document.getElementById("toast");
   if (!el) return;
+
+  if (toastTl?.isActive()) {
+    el.textContent = msg;
+    gsap.fromTo(el, { scale: 0.95 }, { scale: 1.02, yoyo: true, repeat: 1, duration: 0.12, ease: "power1.inOut" });
+    toastTl.kill();
+  }
+
   el.textContent = msg;
-  el.classList.add("show");
-  if (toastTimer) window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => el.classList.remove("show"), 2500);
+  toastTl = gsap.timeline()
+    .set(el, { opacity: 0, y: 20, scale: 0.96 })
+    .to(el,  { opacity: 1, y: 0, scale: 1, duration: 0.28, ease: "back.out(2)" })
+    .to(el,  { opacity: 1, duration: 2.0 }, ">")
+    .to(el,  { opacity: 0, y: 20, duration: 0.2, ease: "power2.in" });
 }
 
 export function mountUIDeps(panel: HTMLElement, scene: LoadedScene, viewer: Viewer): void {
