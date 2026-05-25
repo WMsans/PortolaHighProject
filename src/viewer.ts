@@ -320,6 +320,40 @@ export class Viewer {
     return tl;
   }
 
+  playBootIntro(loaded: LoadedScene): gsap.core.Timeline {
+    this.controls.enabled = false;
+
+    const startPos = this.defaultCameraPos.clone().multiplyScalar(3);
+    startPos.y *= 1.4;
+    this.camera.position.copy(startPos);
+    this.controls.target.copy(this.defaultTarget);
+    this.controls.update();
+
+    const allMeshes = [...loaded.floorMeshes[1], ...loaded.floorMeshes[2]];
+    allMeshes.forEach((m) => {
+      m.userData.origScaleY = m.scale.y;
+      m.scale.y = 0;
+    });
+
+    const tl = gsap.timeline({
+      onComplete: () => { this.controls.enabled = true; this.controls.update(); },
+    });
+
+    tl.to(this.camera.position, {
+      x: this.defaultCameraPos.x, y: this.defaultCameraPos.y, z: this.defaultCameraPos.z,
+      duration: DUR.bootCamera, ease: EASE.power3Out, onUpdate: () => this.controls.update(),
+    }, 0);
+
+    loaded.floorMeshes[1].forEach((m, i) => {
+      tl.to(m.scale, { y: m.userData.origScaleY, duration: 0.5, ease: "back.out(2.2)" }, 0.2 + i * 0.04);
+    });
+    loaded.floorMeshes[2].forEach((m, i) => {
+      tl.to(m.scale, { y: m.userData.origScaleY, duration: 0.5, ease: "back.out(2.2)" }, 0.26 + i * 0.04);
+    });
+
+    return tl;
+  }
+
   recenter(): void {
     this.camera.position.copy(this.defaultCameraPos);
     this.controls.target.copy(this.defaultTarget);
