@@ -231,6 +231,27 @@ export class Viewer {
     return tl;
   }
 
+  animateMarkerPulse(positions: Vector3[]): gsap.core.Timeline {
+    const tl = gsap.timeline();
+    positions.forEach((pos, i) => {
+      const geo = new RingGeometry(0.8, 1.1, 18);
+      const mat = new MeshBasicMaterial({ color: 0xffd166, transparent: true, opacity: 0.85, side: DoubleSide, depthTest: false });
+      const halo = new Mesh(geo, mat);
+      halo.position.copy(pos);
+      halo.rotation.x = -Math.PI / 2;
+      halo.renderOrder = ROUTE_RENDER_ORDER + 3;
+      this.routeLayer.add(halo);
+      tl.fromTo(halo.scale,
+        { x: 0.5, y: 0.5, z: 0.5 },
+        { x: 1.4, y: 1.4, z: 1.4, duration: 0.36, ease: EASE.elasticOut }, i * 0.06);
+      tl.fromTo(mat,
+        { opacity: 0.85 },
+        { opacity: 0, duration: 0.36, ease: "power2.out",
+          onComplete: () => { this.routeLayer.remove(halo); geo.dispose(); mat.dispose(); } }, i * 0.06);
+    });
+    return tl;
+  }
+
   clearRoute(): void {
     this.clearPin();
     this.routeLayer.children.forEach((child) => {
