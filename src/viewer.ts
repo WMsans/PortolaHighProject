@@ -184,8 +184,9 @@ export class Viewer {
     this.routeTotalLen = 0;
     for (let i = 1; i < points.length; i++) this.routeTotalLen += points[i].distanceTo(points[i - 1]);
     const geo = new LineGeometry();
-    geo.setPositions([points[0].x, points[0].y, points[0].z,
-                      points[0].x, points[0].y, points[0].z]);
+    const collapsed: number[] = [];
+    for (let i = 0; i < points.length; i++) collapsed.push(points[0].x, points[0].y, points[0].z);
+    geo.setPositions(collapsed);
     const line = new Line2(geo, this.routeMaterial);
     line.computeLineDistances();
     line.renderOrder = ROUTE_RENDER_ORDER;
@@ -432,24 +433,34 @@ export class Viewer {
   }
 
   private buildPartialPositions(p: number): number[] {
-    if (this.routePoints.length < 2) return [];
+    const n = this.routePoints.length;
+    if (n < 2) return [];
     const target = this.routeTotalLen * Math.max(0, Math.min(1, p));
     const out: number[] = [];
     out.push(this.routePoints[0].x, this.routePoints[0].y, this.routePoints[0].z);
     let acc = 0;
-    for (let i = 1; i < this.routePoints.length; i++) {
+    let tipX = this.routePoints[0].x, tipY = this.routePoints[0].y, tipZ = this.routePoints[0].z;
+    let reached = false;
+    for (let i = 1; i < n; i++) {
+      if (reached) {
+        out.push(tipX, tipY, tipZ);
+        continue;
+      }
       const prev = this.routePoints[i - 1];
       const cur  = this.routePoints[i];
       const seg  = cur.distanceTo(prev);
       if (acc + seg >= target) {
-        const t = (target - acc) / seg;
-        out.push(prev.x + (cur.x - prev.x) * t,
-                 prev.y + (cur.y - prev.y) * t,
-                 prev.z + (cur.z - prev.z) * t);
-        return out;
+        const t = seg > 0 ? (target - acc) / seg : 1;
+        tipX = prev.x + (cur.x - prev.x) * t;
+        tipY = prev.y + (cur.y - prev.y) * t;
+        tipZ = prev.z + (cur.z - prev.z) * t;
+        out.push(tipX, tipY, tipZ);
+        reached = true;
+      } else {
+        acc += seg;
+        tipX = cur.x; tipY = cur.y; tipZ = cur.z;
+        out.push(tipX, tipY, tipZ);
       }
-      acc += seg;
-      out.push(cur.x, cur.y, cur.z);
     }
     return out;
   }
