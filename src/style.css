@@ -45,6 +45,7 @@ html, body, #app { height: 100%; width: 100%; overflow: hidden; font-family: sys
 }
 #error-overlay[hidden] { display: none; }
 #error-overlay button { margin-top: 16px; padding: 10px 24px; cursor: pointer; }
+.error-card { display: flex; flex-direction: column; align-items: center; }
 .focus-glow {
   position: absolute; border-radius: 6px;
   box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.5);
