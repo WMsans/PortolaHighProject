@@ -1,4 +1,4 @@
-import { gsap, DUR, EASE } from "./motion";
+import { gsap, EASE } from "./motion";
 import type { Viewer } from "./viewer";
 import type { LoadedScene } from "./types";
 

@@ -47,6 +47,9 @@ export class Viewer {
   private pinMesh: Mesh | null = null;
   private ringMeshes: Mesh[] = [];
   private breathingHalos: { mesh: Mesh; tween: gsap.core.Tween }[] = [];
+  private floorGroups: { 1: Object3D[]; 2: Object3D[] } | null = null;
+  private currentFloor: FloorView = "both";
+  private floorTl: gsap.core.Timeline | null = null;
   private defaultCameraPos = new Vector3(0, 200, 200);
   private defaultTarget = new Vector3(0, 0, 0);
   private modelBounds: Box3 | null = null;
@@ -323,6 +326,7 @@ export class Viewer {
   }
 
   get progress(): number { return this.routeProgress; }
+  get floor(): FloorView { return this.currentFloor; }
   set progress(p: number) {
     this.routeProgress = p;
     if (!this.routeLine) return;
