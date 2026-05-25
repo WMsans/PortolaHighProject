@@ -11,6 +11,37 @@ export interface UIDeps {
 
 export function mountUI(panel: HTMLElement, deps: UIDeps): void {
   const { scene, graph, viewer } = deps;
+
+  function squish(el: HTMLElement): void {
+    gsap.fromTo(
+      el,
+      { scale: 1 },
+      {
+        keyframes: [
+          { scale: 0.92, duration: 0.06 },
+          { scale: 1.04, duration: 0.08 },
+          { scale: 1.0,  duration: 0.06 },
+        ],
+        ease: "back.out(2.5)",
+        overwrite: "auto",
+      }
+    );
+  }
+
+  function goWave(button: HTMLElement, originX: number, originY: number): void {
+    const rect = button.getBoundingClientRect();
+    const wave = document.createElement("span");
+    wave.className = "go-wave";
+    wave.style.left = `${originX - rect.left}px`;
+    wave.style.top  = `${originY - rect.top}px`;
+    button.appendChild(wave);
+    gsap.fromTo(
+      wave,
+      { scale: 0, opacity: 0.4 },
+      { scale: 2.5, opacity: 0, duration: 0.42, ease: "power2.out", onComplete: () => wave.remove() }
+    );
+  }
+
   const roomList = Array.from(scene.rooms.keys()).sort();
   const parkingList = Array.from(scene.parking.keys()).sort();
 
@@ -58,9 +89,16 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
     });
   });
 
-  recenter.addEventListener("click", () => viewer.recenter());
+  recenter.addEventListener("click", () => {
+    squish(recenter);
+    viewer.recenter();
+  });
 
-  goBtn.addEventListener("click", () => runRoute());
+  goBtn.addEventListener("click", (e) => {
+    squish(goBtn);
+    goWave(goBtn, e.clientX, e.clientY);
+    runRoute();
+  });
   toInput.addEventListener("keydown", (e) => { if (e.key === "Enter") runRoute(); });
   fromInput.addEventListener("keydown", (e) => { if (e.key === "Enter") runRoute(); });
 
