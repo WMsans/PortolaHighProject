@@ -2,6 +2,7 @@ import type { LoadedScene } from "./types";
 import type { FloorView, Viewer } from "./viewer";
 import { buildGraph, findPath, recommendParking, type Graph } from "./graph";
 import { gsap, Flip } from "./motion";
+import { playRouteReveal } from "./route-reveal";
 
 export interface UIDeps {
   scene: LoadedScene;
@@ -211,9 +212,11 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
     if (!fromRaw) {
       const rec = recommendParking(graph, scene, toId);
       if (!rec) { toast("No route available — check graph.json"); return; }
-      viewer.drawRoute(rec.path.map((n) => n.position));
-      showResolveTick(toInput);
-      setResult(`Park at ${formatLot(rec.lot)} — ${Math.round(rec.distance)} m walk`);
+      playRouteReveal(viewer, rec.path.map((n) => n.position));
+      gsap.delayedCall(1.25, () => {
+        showResolveTick(toInput);
+        setResult(`Park at ${formatLot(rec.lot)} — ${Math.round(rec.distance)} m walk`);
+      });
       return;
     }
 
@@ -221,11 +224,13 @@ export function mountUI(panel: HTMLElement, deps: UIDeps): void {
     if (!fromId) { rejectBounce(fromInput); toast(`"${fromRaw}" not found`); return; }
     const path = findPath(graph, fromId, toId);
     if (!path) { toast("No route available — check graph.json"); return; }
-    viewer.drawRoute(path.map((n) => n.position));
-    showResolveTick(toInput);
-    let total = 0;
-    for (let i = 1; i < path.length; i++) total += path[i].position.distanceTo(path[i - 1].position);
-    setResult(`Route: ${prettyId(fromId)} → ${prettyId(toId)}, ${Math.round(total)} m`);
+    playRouteReveal(viewer, path.map((n) => n.position));
+    gsap.delayedCall(1.25, () => {
+      showResolveTick(toInput);
+      let total = 0;
+      for (let i = 1; i < path.length; i++) total += path[i].position.distanceTo(path[i - 1].position);
+      setResult(`Route: ${prettyId(fromId)} → ${prettyId(toId)}, ${Math.round(total)} m`);
+    });
   }
 }
 
