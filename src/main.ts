@@ -2,6 +2,7 @@ import { loadScene } from "./loader";
 import { registerMotion, gsap } from "./motion";
 import { Viewer } from "./viewer";
 import { mountUIDeps, toast } from "./ui";
+import { playIntro } from "./intro";
 
 registerMotion();
 
@@ -54,6 +55,7 @@ async function boot(glbSource: string | File = "./school.glb") {
     viewer.attachModel(scene);
     if (debug) viewer.enableDebug(scene);
     mountUIDeps(panel, scene, viewer);
+    playIntro(viewer, scene, panel);
     if (scene.edges.length === 0) toast("graph.json has no edges — routing disabled");
   } catch (err) {
     viewer.dispose();

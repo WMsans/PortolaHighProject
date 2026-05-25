@@ -55,3 +55,13 @@ html, body, #app { height: 100%; width: 100%; overflow: hidden; font-family: sys
   position: absolute; color: #27ae60; font-weight: 700; font-size: 16px;
   pointer-events: none; z-index: 2;
 }
+#boot-curtain {
+  position: absolute; inset: 0; z-index: 50;
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+#boot-wordmark {
+  color: white; font-size: 36px; font-weight: 700; letter-spacing: 0.04em;
+  opacity: 0;
+}
