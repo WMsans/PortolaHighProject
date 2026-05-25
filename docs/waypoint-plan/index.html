@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Portola waypoint plan</title>
+  <style>
+    body { margin: 0; background: #111; color: #eee; font: 14px/1.4 system-ui, sans-serif; }
+    .wrap { position: relative; display: inline-block; }
+    img { display: block; max-width: 100%; }
+    .dot {
+      position: absolute;
+      width: 22px; height: 22px;
+      margin-left: -11px; margin-top: -11px;
+      border-radius: 50%;
+      background: #ff8800;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px #000;
+      display: flex; align-items: center; justify-content: center;
+      font: bold 11px/1 sans-serif;
+      color: #000;
+      cursor: help;
+    }
+    .dot.p { background: #00c8ff; }   /* parking entrance */
+    .dot.s { background: #ffd000; }   /* stair-adjacent waypoint */
+    .legend { padding: 12px 16px; }
+    .legend span { display: inline-block; margin-right: 16px; }
+    .sw { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -2px; margin-right: 4px; border: 1px solid #fff;}
+    table { border-collapse: collapse; margin: 16px; }
+    td, th { border: 1px solid #444; padding: 4px 8px; }
+    th { background: #222; text-align: left; }
+  </style>
+</head>
+<body>
+  <div class="legend">
+    <span><i class="sw" style="background:#ff8800"></i> node.&lt;n&gt; outdoor waypoint</span>
+    <span><i class="sw" style="background:#00c8ff"></i> parking.&lt;name&gt;.entrance</span>
+    <span><i class="sw" style="background:#ffd000"></i> waypoint at a stair landing</span>
+    <span style="opacity:.7">Hover any dot for its name.</span>
+  </div>
+  <div class="wrap" id="wrap">
+    <img src="aerial.png" alt="Portola aerial">
+  </div>
+
+  <h3 style="margin:16px">Recommended node list (create as empty objects in Blender)</h3>
+  <table>
+    <tr><th>Name</th><th>Where</th></tr>
+    <tr><td>node.1</td><td>NW walkway, north of west building cluster</td></tr>
+    <tr><td>node.2</td><td>North spine, between west buildings and softball outfield</td></tr>
+    <tr><td>node.3</td><td>North spine mid (near the orange site marker)</td></tr>
+    <tr><td>node.4</td><td>North spine east, between field fence and tennis courts</td></tr>
+    <tr><td>node.5</td><td>Tennis-court west gate</td></tr>
+    <tr><td>node.6</td><td>NW quad — west buildings inner walkway</td></tr>
+    <tr><td>node.7</td><td>Central quad hub (near the gizmo origin)</td></tr>
+    <tr><td>node.8</td><td>Quad east — between main building and pool</td></tr>
+    <tr><td>node.9</td><td>Pool deck north walkway</td></tr>
+    <tr><td>node.10</td><td>Athletics gateway — pool to stadium</td></tr>
+    <tr><td>node.11</td><td>Stadium north entrance</td></tr>
+    <tr><td>node.12</td><td>Stadium south entrance / track loop</td></tr>
+    <tr><td>node.13</td><td>SW path, between west buildings and west parking</td></tr>
+    <tr><td>node.14</td><td>South-central, between main classrooms and solar lot</td></tr>
+    <tr><td>node.15</td><td>SE path, between pool building and solar lot</td></tr>
+    <tr><td>node.16</td><td>Solar lot NW entrance walkway</td></tr>
+    <tr><td>node.17</td><td>Solar lot central spine</td></tr>
+    <tr><td>node.18</td><td>Solar lot SE corner walkway</td></tr>
+    <tr><td>node.19</td><td>West-building inner courtyard</td></tr>
+    <tr><td>node.20</td><td>South perimeter walkway (toward street)</td></tr>
+    <tr><td>parking.west.entrance</td><td>West staff lot driveway</td></tr>
+    <tr><td>parking.south.entrance</td><td>Solar lot main entry (south side)</td></tr>
+    <tr><td>parking.northwest.entrance</td><td>Small NW lot off the access road</td></tr>
+  </table>
+
+  <h3 style="margin:16px">Suggested edges to seed in graph.json</h3>
+  <pre style="margin:16px; padding:12px; background:#222; border-radius:6px;">{
+  "edges": [
+    ["node.1","node.2"], ["node.2","node.3"], ["node.3","node.4"], ["node.4","node.5"],
+    ["node.1","node.6"], ["node.6","node.7"], ["node.3","node.7"],
+    ["node.7","node.8"], ["node.8","node.9"], ["node.9","node.10"],
+    ["node.10","node.11"], ["node.11","node.12"], ["node.4","node.11"],
+    ["node.6","node.19"], ["node.19","node.13"], ["node.13","node.14"],
+    ["node.7","node.14"], ["node.14","node.15"], ["node.15","node.10"],
+    ["node.14","node.17"], ["node.16","node.17"], ["node.17","node.18"],
+    ["node.13","node.16"], ["node.18","node.20"], ["node.15","node.18"],
+    ["parking.west.entrance","node.13"],
+    ["parking.south.entrance","node.17"],
+    ["parking.northwest.entrance","node.1"]
+  ]
+}</pre>
+
+  <script>
+    // Positions are percentages of the aerial image (x%, y%).
+    const dots = [
+      ["node.1",            21, 38, ""],
+      ["node.2",            32, 23, ""],
+      ["node.3",            46, 17, ""],
+      ["node.4",            64, 23, ""],
+      ["node.5",            76, 36, ""],
+      ["node.6",            27, 47, ""],
+      ["node.7",            42, 58, "s"],
+      ["node.8",            54, 56, ""],
+      ["node.9",            62, 60, ""],
+      ["node.10",           68, 60, ""],
+      ["node.11",           80, 55, ""],
+      ["node.12",           80, 70, ""],
+      ["node.13",           20, 60, ""],
+      ["node.14",           45, 70, "s"],
+      ["node.15",           60, 72, ""],
+      ["node.16",           45, 80, ""],
+      ["node.17",           58, 83, ""],
+      ["node.18",           72, 85, ""],
+      ["node.19",           28, 65, ""],
+      ["node.20",           50, 92, ""],
+      ["parking.west.entrance",      11, 55, "p"],
+      ["parking.south.entrance",     58, 92, "p"],
+      ["parking.northwest.entrance", 15, 31, "p"],
+    ];
+    const wrap = document.getElementById("wrap");
+    const img = wrap.querySelector("img");
+    function render() {
+      wrap.querySelectorAll(".dot").forEach(d => d.remove());
+      const w = img.clientWidth, h = img.clientHeight;
+      for (const [name, x, y, cls] of dots) {
+        const d = document.createElement("div");
+        d.className = "dot " + cls;
+        d.style.left = (x/100*w) + "px";
+        d.style.top  = (y/100*h) + "px";
+        d.title = name;
+        d.textContent = name.startsWith("node.") ? name.slice(5) : "P";
+        wrap.appendChild(d);
+      }
+    }
+    img.addEventListener("load", render);
+    window.addEventListener("resize", render);
+    if (img.complete) render();
+  </script>
+</body>
+</html>

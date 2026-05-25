@@ -16,23 +16,36 @@ const errorOverlay = errorOverlayEl as HTMLElement;
 
 const debug = new URLSearchParams(location.search).has("debug");
 
-async function boot() {
+function showError(message: string, onPick: (file: File) => void) {
+  errorOverlay.hidden = false;
+  errorOverlay.innerHTML = `
+    <h2>Failed to load campus data</h2>
+    <p></p>
+    <p style="margin-top:12px">Choose a .glb file from your computer:</p>
+    <input type="file" accept=".glb,model/gltf-binary" id="glb-picker" style="margin-top:8px;color:white" />
+    <button id="reload-btn">Reload</button>
+  `;
+  errorOverlay.querySelector("p")!.textContent = message;
+  errorOverlay.querySelector<HTMLButtonElement>("#reload-btn")!.addEventListener("click", () => location.reload());
+  errorOverlay.querySelector<HTMLInputElement>("#glb-picker")!.addEventListener("change", (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) onPick(file);
+  });
+}
+
+async function boot(glbSource: string | File = "./school.glb") {
+  errorOverlay.hidden = true;
+  errorOverlay.innerHTML = "";
   const viewer = new Viewer(canvas);
   try {
-    const scene = await loadScene("./school.glb", "./graph.json");
+    const scene = await loadScene(glbSource, "./graph.json");
     viewer.attachModel(scene);
     if (debug) viewer.enableDebug(scene);
     mountUIDeps(panel, scene, viewer);
     if (scene.edges.length === 0) toast("graph.json has no edges — routing disabled");
   } catch (err) {
     viewer.dispose();
-    errorOverlay.hidden = false;
-    errorOverlay.innerHTML = `
-      <h2>Failed to load campus data</h2>
-      <p></p>
-      <button onclick="location.reload()">Reload</button>
-    `;
-    errorOverlay.querySelector("p")!.textContent = (err as Error).message;
+    showError((err as Error).message, (file) => boot(file));
   }
 }
 

@@ -3,4 +3,5 @@ dist
 .DS_Store
 *.log
 .worktrees/
-/public/school.glb
+*.glb
+/.superpowers/
